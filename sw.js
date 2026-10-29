@@ -1,5 +1,5 @@
 // CifraVault — Service Worker 100% Offline
-const CACHE_NAME = 'cifravault-offline-cache-v1';
+const CACHE_NAME = 'cifravault-offline-cache-v2';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', (event) => {
