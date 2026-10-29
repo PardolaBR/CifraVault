@@ -1,0 +1,2648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CifraVault" />
+  <title>CifraVault — Caderno Offline de Cifras & Tablaturas</title>
+
+  <!-- Manifesto PWA Dinâmico preenchido via JavaScript no carregamento -->
+  <link rel="manifest" id="dynamicManifestLink" />
+
+  <!-- Ícone SVG nativo embutido em Data URI (Zero requisições externas) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><rect x='6' y='6' width='88' height='88' rx='18' fill='none' stroke='%23f59e0b' stroke-width='4'/><path d='M65 24l11 11-8 8-11-11 8-8zM53 36l11 11-21 21c-3 3-8 4-12 2l-7-7c-2-4-1-9 2-12l27-15z' fill='%23f59e0b'/><circle cx='36' cy='64' r='5' fill='%230f172a'/></svg>" />
+
+  <style>
+    /* ==========================================================================
+       1. VARIÁVEIS E RESET (100% VANILLA CSS — ZERO DEPENDÊNCIAS EXTERNAS)
+       ========================================================================== */
+    :root {
+      --bg-deep: #090d16;
+      --bg-main: #0f172a;
+      --bg-panel: #1e293b;
+      --bg-panel-hover: #26354d;
+      --bg-input: #0b1120;
+      --border-color: #334155;
+      --border-subtle: rgba(148, 163, 184, 0.14);
+
+      --text-main: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+
+      --accent-amber: #f59e0b;
+      --accent-amber-light: #fbbf24;
+      --accent-amber-bg: rgba(245, 158, 11, 0.14);
+
+      --accent-cyan: #38bdf8;
+      --accent-cyan-bg: rgba(56, 189, 248, 0.12);
+
+      --accent-emerald: #10b981;
+      --accent-emerald-bg: rgba(16, 185, 129, 0.14);
+
+      --accent-purple: #a855f7;
+      --accent-purple-bg: rgba(168, 85, 247, 0.15);
+
+      --accent-danger: #ef4444;
+      --accent-danger-bg: rgba(239, 68, 68, 0.15);
+
+      --font-ui: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-lg: 0 12px 32px -4px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background-color: var(--bg-deep);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Scrollbars customizadas */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-deep);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    button, input, select, textarea {
+      font-family: inherit;
+      color: inherit;
+      background: none;
+      border: none;
+      outline: none;
+    }
+
+    button {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .svg-icon {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       2. ESTRUTURA GERAL DO APP (TOPBAR + WORKSPACE)
+       ========================================================================== */
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .topbar {
+      height: 58px;
+      background-color: var(--bg-main);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      gap: 10px;
+      flex-shrink: 0;
+      z-index: 30;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #f59e0b, #ea580c);
+      color: #090d16;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .offline-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--accent-emerald-bg);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .offline-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Botões Padrão */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .btn-icon-only {
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-icon-only:hover {
+      background: var(--bg-panel-hover);
+      color: var(--text-main);
+    }
+
+    .btn-secondary {
+      background: var(--bg-panel);
+      color: var(--text-secondary);
+      border-color: var(--border-color);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-panel-hover);
+      color: var(--text-main);
+    }
+
+    .btn-pwa {
+      background: var(--accent-cyan-bg);
+      color: var(--accent-cyan);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+    .btn-pwa:hover {
+      background: rgba(56, 189, 248, 0.22);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #f59e0b, #ea580c);
+      color: #090d16;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+    }
+    .btn-primary:hover {
+      filter: brightness(1.08);
+    }
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+
+    .btn-danger {
+      background: var(--accent-danger-bg);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* ==========================================================================
+       3. WORKSPACE & SIDEBAR (GAVETA NO CELULAR / FIXA NO DESKTOP)
+       ========================================================================== */
+    .workspace {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .sidebar-backdrop {
+      position: fixed;
+      inset: 0;
+      top: 58px;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 20;
+    }
+
+    .sidebar {
+      width: 320px;
+      background-color: var(--bg-main);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      z-index: 25;
+      transition: transform 0.25s ease, margin-left 0.25s ease;
+    }
+
+    .sidebar.collapsed-desktop {
+      margin-left: -320px;
+    }
+
+    @media (max-width: 960px) {
+      .sidebar {
+        position: fixed;
+        top: 58px;
+        bottom: 0;
+        left: 0;
+        width: 300px;
+        max-width: 86vw;
+        transform: translateX(-100%);
+        box-shadow: var(--shadow-lg);
+      }
+      .sidebar.open-mobile {
+        transform: translateX(0);
+      }
+      .hide-sm {
+        display: none !important;
+      }
+    }
+
+    /* Busca e Filtros na Sidebar */
+    .sidebar-top {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-box .search-icon {
+      position: absolute;
+      left: 10px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 8px 30px 8px 32px;
+      font-size: 13px;
+      color: var(--text-main);
+      transition: border-color 0.15s;
+    }
+    .search-input:focus {
+      border-color: var(--accent-amber);
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 8px;
+      color: var(--text-muted);
+      padding: 2px;
+    }
+    .search-clear:hover {
+      color: var(--text-main);
+    }
+
+    .folder-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .category-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .cat-pill {
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      background: var(--bg-panel);
+      color: var(--text-secondary);
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s;
+    }
+    .cat-pill:hover {
+      background: var(--bg-panel-hover);
+      color: var(--text-main);
+    }
+    .cat-pill.active {
+      background: var(--accent-amber-bg);
+      color: var(--accent-amber-light);
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    .cat-count {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      opacity: 0.8;
+    }
+
+    /* Lista de Músicas */
+    .song-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .song-item {
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .song-item:hover {
+      background: var(--bg-panel);
+      border-color: #475569;
+    }
+    .song-item.active {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.5);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+
+    .song-item-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .song-item-title {
+      font-weight: 700;
+      font-size: 13.5px;
+      color: var(--text-main);
+      line-height: 1.25;
+      word-break: break-word;
+    }
+    .song-item.active .song-item-title {
+      color: var(--accent-amber-light);
+    }
+
+    .song-item-artist {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .fav-star-btn {
+      color: #475569;
+      padding: 3px;
+      border-radius: 6px;
+      transition: transform 0.15s, color 0.15s;
+    }
+    .fav-star-btn:hover {
+      transform: scale(1.15);
+      color: var(--accent-amber-light);
+    }
+    .fav-star-btn.is-fav {
+      color: var(--accent-amber-light);
+    }
+
+    .song-item-badges {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(148, 163, 184, 0.08);
+      font-size: 10.5px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 10.5px;
+    }
+
+    .badge-amber {
+      background: var(--accent-amber-bg);
+      color: var(--accent-amber-light);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .badge-cyan {
+      background: var(--accent-cyan-bg);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .badge-purple {
+      background: var(--accent-purple-bg);
+      color: #d8b4fe;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+    .badge-mono {
+      font-family: var(--font-mono);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+    }
+
+    .sidebar-footer {
+      padding: 10px 12px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-deep);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .link-btn {
+      color: var(--accent-amber-light);
+      text-decoration: underline;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    /* ==========================================================================
+       4. ÁREA PRINCIPAL DO VISUALIZADOR E BARRA DE FERRAMENTAS
+       ========================================================================== */
+    .main-viewer {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background-color: var(--bg-deep);
+    }
+
+    .player-toolbar {
+      background-color: var(--bg-main);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 8px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      z-index: 15;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      padding: 4px 6px;
+      border-radius: var(--radius-sm);
+    }
+
+    .toolbar-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 0 4px;
+    }
+
+    .ctrl-btn {
+      padding: 4px 9px;
+      border-radius: 6px;
+      background: var(--bg-panel);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .ctrl-btn:hover {
+      background: var(--bg-panel-hover);
+      color: var(--text-main);
+    }
+    .ctrl-btn.active {
+      background: var(--accent-amber);
+      color: #090d16;
+    }
+
+    .speed-slider {
+      width: 75px;
+      accent-color: var(--accent-amber);
+      cursor: pointer;
+    }
+
+    /* Área de Rolagem da Música */
+    .song-viewport {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px 80px 16px;
+      scroll-behavior: smooth;
+    }
+
+    .song-container {
+      max-width: 1020px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .song-header-card {
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .song-header-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .song-meta-badges {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .song-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .song-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+
+    .song-artist {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .song-header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Gaveta de Diagramas de Acordes */
+    .chords-drawer {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .chords-drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .chords-grid {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .chord-diagram-card {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 8px;
+      width: 96px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .chord-diagram-card.highlighted {
+      border-color: var(--accent-amber);
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .chord-diagram-name {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--accent-amber-light);
+      margin-bottom: 4px;
+    }
+
+    /* ==========================================================================
+       5. FOLHA DE CIFRA E TABLATURA (MONOSPACE ESTRITO PARA ALINHAMENTO EXATO)
+       ========================================================================== */
+    .sheet-card {
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px;
+      box-shadow: var(--shadow-lg);
+      min-height: 55vh;
+    }
+
+    @media (max-width: 640px) {
+      .sheet-card {
+        padding: 14px 12px;
+      }
+    }
+
+    .song-sheet {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      line-height: 1.65;
+      white-space: pre;
+      overflow-x: auto;
+      color: var(--text-main);
+      tab-size: 4;
+    }
+
+    @media (min-width: 960px) {
+      .song-sheet.two-columns {
+        column-count: 2;
+        column-gap: 44px;
+        column-rule: 1px dashed var(--border-color);
+      }
+    }
+
+    /* Acordes Clicáveis */
+    .chord-token {
+      color: var(--accent-amber-light);
+      font-weight: 700;
+      cursor: pointer;
+      padding: 1px 3px;
+      border-radius: 4px;
+      transition: background-color 0.12s, color 0.12s;
+    }
+    .chord-token:hover {
+      background-color: rgba(245, 158, 11, 0.25);
+      color: #fef08a;
+    }
+
+    /* Linhas de Tablatura ASCII */
+    .tab-line {
+      display: block;
+      color: var(--accent-cyan);
+      background: rgba(15, 23, 42, 0.85);
+      border-left: 3px solid var(--accent-cyan);
+      padding-left: 10px;
+      font-weight: 500;
+    }
+
+    /* Marcadores de Seção [Intro], [Refrão], [Solo] */
+    .section-tag {
+      display: inline-block;
+      background: var(--accent-amber-bg);
+      color: var(--accent-amber-light);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      padding: 1px 9px;
+      border-radius: 6px;
+      font-weight: 700;
+      margin-top: 6px;
+      margin-bottom: 2px;
+    }
+
+    /* ==========================================================================
+       6. POPUP DE ACORDE INTERATIVO & MODAIS
+       ========================================================================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      z-index: 50;
+    }
+
+    .modal-card {
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 780px;
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .modal-card.modal-sm {
+      max-width: 440px;
+    }
+
+    .modal-card.modal-md {
+      max-width: 580px;
+    }
+
+    .modal-header {
+      padding: 14px 18px;
+      background: var(--bg-deep);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .modal-subtitle {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .modal-body {
+      padding: 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-footer {
+      padding: 12px 18px;
+      background: var(--bg-deep);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* Formulários */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 8px 11px;
+      font-size: 13px;
+      color: var(--text-main);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent-amber);
+    }
+
+    .form-textarea {
+      font-family: var(--font-mono);
+      line-height: 1.55;
+      resize: vertical;
+      min-height: 250px;
+    }
+
+    .editor-tools {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .step-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .step-box ol {
+      padding-left: 18px;
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .code-inline {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      background: var(--bg-panel);
+      color: var(--accent-amber-light);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* Toast Flutuante */
+    .toast-stack {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      z-index: 80;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast-item {
+      background: var(--bg-panel);
+      border: 1px solid var(--accent-amber);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      font-size: 12.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- BARRA DO TOPO -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="btnToggleSidebar" class="btn-icon-only" title="Mostrar/Ocultar Pastas e Repertório">
+          <svg class="svg-icon" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+
+        <div class="brand-box">
+          <div class="brand-logo">
+            <svg class="svg-icon" style="width:20px;height:20px;stroke:#090d16;stroke-width:2.3" viewBox="0 0 24 24">
+              <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-title">
+              <span>CifraVault</span>
+              <span class="offline-pill" title="100% Offline — Dados salvos no dispositivo">
+                <span class="offline-dot"></span> 100% Offline
+              </span>
+            </div>
+            <div class="brand-subtitle hide-sm">Caderno Pessoal de Cifras & Tablaturas ASCII</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <!-- Botão Modo App / PWA -->
+        <button id="btnOpenPwaModal" class="btn btn-pwa" title="Instalar como Aplicativo Offline no Brave PC e Celular">
+          <svg class="svg-icon" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          <span class="hide-sm">Modo App / PWA</span>
+        </button>
+
+        <!-- Botão Backup / JSON -->
+        <button id="btnOpenBackupModal" class="btn btn-secondary" title="Exportar ou Importar suas músicas entre PC e Celular">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="hide-sm">Backup / JSON</span>
+        </button>
+
+        <!-- Botão Nova Cifra / Tab -->
+        <button id="btnOpenNewModal" class="btn btn-primary">
+          <svg class="svg-icon" style="stroke:#090d16;stroke-width:2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>+ Nova Cifra / Tab</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ÁREA PRINCIPAL DE TRABALHO -->
+    <div class="workspace">
+      <!-- Backdrop Mobile -->
+      <div id="sidebarBackdrop" class="sidebar-backdrop hidden"></div>
+
+      <!-- SIDEBAR DE REPERTÓRIO E PASTAS -->
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-top">
+          <!-- Busca em tempo real -->
+          <div class="search-box">
+            <svg class="svg-icon search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="searchInput" type="text" class="search-input" placeholder="Buscar título, artista ou pasta..." />
+            <button id="btnClearSearch" class="search-clear hidden" title="Limpar busca">✕</button>
+          </div>
+
+          <div class="folder-header">
+            <span>Pastas & Categorias</span>
+            <span id="sidebarTotalCount">0 músicas</span>
+          </div>
+
+          <!-- Pílulas de Categoria -->
+          <div id="categoryPillsContainer" class="category-pills">
+            <!-- Preenchido via JS -->
+          </div>
+        </div>
+
+        <!-- Lista de Músicas -->
+        <div id="songListContainer" class="song-list">
+          <!-- Preenchido via JS -->
+        </div>
+
+        <!-- Rodapé da Sidebar -->
+        <div class="sidebar-footer">
+          <span id="storageIndicatorText">Salvo em localStorage</span>
+          <button id="btnRestoreSamples" class="link-btn" title="Recarregar as 3 músicas de exemplo">Restaurar Exemplos</button>
+        </div>
+      </aside>
+
+      <!-- VISUALIZADOR DA MÚSICA -->
+      <main class="main-viewer">
+        <!-- Barra de Controles Musicais -->
+        <div class="player-toolbar">
+          <!-- Rolagem Automática -->
+          <div class="toolbar-group">
+            <button id="btnAutoScroll" class="ctrl-btn" title="Iniciar/Pausar Rolagem Automática">
+              <span id="autoScrollLabel">▶ Auto-Scroll</span>
+            </button>
+            <input id="scrollSpeedInput" type="range" min="1" max="10" step="1" value="3" class="speed-slider" title="Velocidade de rolagem (1x a 10x)" />
+            <span id="scrollSpeedValue" class="toolbar-label" style="font-family:var(--font-mono);color:var(--accent-amber-light)">3x</span>
+          </div>
+
+          <!-- Transposição de Tom & Acidentes (# / b) -->
+          <div class="toolbar-group">
+            <span class="toolbar-label hide-sm">Tom:</span>
+            <button id="btnTransposeDown" class="ctrl-btn" title="Descer 1 semitom">-1</button>
+            <button id="btnTransposeReset" class="ctrl-btn" title="Clique para zerar transposição">Orig</button>
+            <button id="btnTransposeUp" class="ctrl-btn" title="Subir 1 semitom">+1</button>
+            <button id="btnAccidentalToggle" class="ctrl-btn" title="Alternar preferência entre Sustenido (#) e Bemol (b)">♯/♭: ♯</button>
+          </div>
+
+          <!-- Fonte, 2 Colunas e Diagramas de Acordes -->
+          <div class="toolbar-group">
+            <button id="btnFontDown" class="ctrl-btn" title="Diminuir tamanho da letra/tab">A-</button>
+            <span id="fontSizeValue" class="toolbar-label" style="font-family:var(--font-mono)">15px</span>
+            <button id="btnFontUp" class="ctrl-btn" title="Aumentar tamanho da letra/tab">A+</button>
+            <button id="btnToggleTwoCols" class="ctrl-btn hide-sm" title="Dividir em 2 colunas no computador">2 Colunas</button>
+            <button id="btnToggleChordsDrawer" class="ctrl-btn" title="Mostrar/Ocultar diagramas de acordes da música">
+              Diagramas de Acordes
+            </button>
+          </div>
+        </div>
+
+        <!-- Folha Rolável -->
+        <div id="songScrollViewport" class="song-viewport">
+          <div class="song-container">
+            <!-- Card de Cabeçalho da Música -->
+            <div class="song-header-card">
+              <div class="song-header-row">
+                <div>
+                  <div class="song-meta-badges">
+                    <span id="viewCategoryBadge" class="badge badge-amber">Categoria</span>
+                    <span id="viewTuningBadge" class="badge badge-mono">Afinação: E A D G B E</span>
+                    <span id="viewCapoBadge" class="badge badge-purple hidden">Capo: 2ª Casa</span>
+                  </div>
+
+                  <div class="song-title-row">
+                    <h1 id="viewSongTitle" class="song-title">Selecione uma música</h1>
+                    <button id="btnViewToggleFav" class="fav-star-btn" title="Marcar/Desmarcar como Favorita" style="font-size:20px">★</button>
+                  </div>
+                  <p id="viewSongArtist" class="song-artist">Artista</p>
+                </div>
+
+                <!-- Botões de Ação da Música -->
+                <div class="song-header-actions">
+                  <a id="viewSourceUrlBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-pwa hidden" title="Abrir site de onde a cifra foi retirada">
+                    <span>↗ Fonte Original</span>
+                  </a>
+                  <button id="btnEditSong" class="btn btn-secondary" title="Editar cifra ou tablatura">
+                    <span>✎ Editar</span>
+                  </button>
+                  <button id="btnDuplicateSong" class="btn btn-secondary" title="Criar uma cópia desta música">
+                    <span>❐ Duplicar</span>
+                  </button>
+                  <button id="btnDeleteSong" class="btn btn-danger" title="Excluir música">
+                    <span>🗑 Excluir</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Gaveta de Diagramas de Acordes SVG -->
+              <div id="chordsDrawer" class="chords-drawer hidden">
+                <div class="chords-drawer-header">
+                  <span>Acordes detectados nesta música (clique em qualquer acorde amarelo na folha para destacar):</span>
+                  <button id="btnCloseChordsDrawer" class="link-btn">Ocultar</button>
+                </div>
+                <div id="chordsGridContainer" class="chords-grid">
+                  <!-- Diagramas SVG gerados via JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Folha Monoespaçada da Cifra e Tablatura -->
+            <div class="sheet-card">
+              <div id="songSheetOutput" class="song-sheet"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 1: EDITOR DE CIFRA / TABLATURA (+ NOVA / EDITAR)
+       ========================================================================== -->
+  <div id="editorModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <div id="editorModalTitle" class="modal-title">Nova Cifra ou Tablatura</div>
+          <div class="modal-subtitle">Cole de qualquer site (Cifra Club, Ultimate Guitar, Songsterr) — funciona 100% offline</div>
+        </div>
+        <button id="btnCloseEditorModal" class="btn-icon-only">✕</button>
+      </div>
+
+      <form id="songForm" class="modal-body">
+        <input type="hidden" id="formSongId" />
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Título da Música *</label>
+            <input id="formTitle" type="text" required class="form-input" placeholder="Ex: Theme of Laura (Silent Hill 2)" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Artista / Compositor *</label>
+            <input id="formArtist" type="text" required class="form-input" placeholder="Ex: Akira Yamaoka / 7 Minutoz" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Categoria / Pasta *</label>
+            <input id="formCategory" list="categorySuggestions" required class="form-input" placeholder="Escolha ou digite uma pasta..." />
+            <datalist id="categorySuggestions">
+              <option value="Violão"></option>
+              <option value="Guitarra"></option>
+              <option value="Game OST"></option>
+              <option value="Repertório"></option>
+            </datalist>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Afinação</label>
+            <input id="formTuning" list="tuningSuggestions" class="form-input" placeholder="Ex: E A D G B E" value="E A D G B E" />
+            <datalist id="tuningSuggestions">
+              <option value="E A D G B E"></option>
+              <option value="Eb (Meio Tom Abaixo)"></option>
+              <option value="Drop D (D A D G B E)"></option>
+              <option value="D Standard"></option>
+              <option value="DADGAD"></option>
+            </datalist>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Capotraste (Opcional)</label>
+            <input id="formCapo" type="text" class="form-input" placeholder="Ex: Sem capo, 2ª Casa, 4ª Casa..." />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Link Original (URL Opcional)</label>
+            <input id="formSourceUrl" type="url" class="form-input" placeholder="https://www.cifraclub.com.br/..." />
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="formFavorite" type="checkbox" style="width:16px;height:16px;accent-color:var(--accent-amber)" />
+          <label for="formFavorite" class="form-label" style="cursor:pointer">Marcar nos Favoritos ⭐</label>
+        </div>
+
+        <div class="form-group">
+          <div class="editor-tools">
+            <label class="form-label">Cifra / Tablatura ASCII (suporta também sintaxe [Am]ChordPro) *</label>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button type="button" id="btnCleanExtraSpaces" class="btn btn-secondary">
+                ✨ Limpar Espaços Extras
+              </button>
+              <button type="button" id="btnInsertTabTemplate" class="btn btn-pwa">
+                + Inserir Molde de Tablatura
+              </button>
+            </div>
+          </div>
+          <textarea id="formContent" required class="form-textarea" placeholder="Cole sua cifra ou tablatura aqui..."></textarea>
+        </div>
+
+        <div class="modal-footer" style="margin:-18px -18px -18px -18px;margin-top:6px">
+          <button type="button" id="btnCancelEditorModal" class="btn btn-secondary">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Música</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 2: BACKUP & SINCRONIZAÇÃO PC <-> CELULAR (JSON)
+       ========================================================================== -->
+  <div id="backupModal" class="modal-overlay hidden">
+    <div class="modal-card modal-md">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Backup & Sincronização (PC ⇄ Celular)</div>
+          <div id="backupModalStatus" class="modal-subtitle">3 músicas salvas no navegador</div>
+        </div>
+        <button id="btnCloseBackupModal" class="btn-icon-only">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <button id="btnExportJsonFile" class="btn btn-primary" style="padding:12px;justify-content:center">
+            ⬇ Baixar Arquivo (cifravault-backup.json)
+          </button>
+
+          <label class="btn btn-secondary" style="padding:12px;justify-content:center;cursor:pointer">
+            ⬆ Importar Arquivo .JSON
+            <input id="inputImportJsonFile" type="file" accept=".json,application/json" class="hidden" />
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Transferência Rápida por Texto (WhatsApp / Telegram / Área de Transferência):</label>
+          <textarea id="backupJsonTextarea" class="form-textarea" style="min-height:140px;font-size:11.5px" placeholder="Cole aqui o código JSON para importar ou copie o código atual..."></textarea>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button type="button" id="btnCopyJsonCode" class="btn btn-secondary">📋 Copiar Código JSON</button>
+          <button type="button" id="btnPasteImportJsonCode" class="btn btn-primary">✔ Carregar Código JSON Colado</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 3: KIT GERADOR PWA & INSTRUÇÕES OFFLINE (BRAVE PC & MOBILE)
+       ========================================================================== -->
+  <div id="pwaModal" class="modal-overlay hidden">
+    <div class="modal-card modal-md">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Modo App Instalável (PWA 100% Offline)</div>
+          <div class="modal-subtitle">Instale o CifraVault no Brave do Celular e do PC sem gastar nada</div>
+        </div>
+        <button id="btnClosePwaModal" class="btn-icon-only">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="step-box">
+          <strong style="color:var(--accent-amber-light)">Por que usar o Modo PWA no Celular?</strong>
+          <p style="margin-top:4px">
+            Este arquivo <span class="code-inline">index.html</span> já possui zero dependências externas e funciona 100% offline no PC dando dois cliques. Porém, no Android/iOS, abrir um arquivo avulso pelo gerenciador de arquivos pode limpar o <span class="code-inline">localStorage</span> ao fechar a aba. Ao instalar como <strong>PWA (Progressive Web App)</strong>, o Brave cria um ícone na sua tela inicial, guarda tudo na memória permanente e abre em tela cheia mesmo em <strong>Modo Avião</strong>.
+          </p>
+        </div>
+
+        <div class="form-grid">
+          <button id="btnDownloadManifest" class="btn btn-pwa" style="padding:11px">
+            ⬇ 1. Baixar manifest.json
+          </button>
+          <button id="btnDownloadSw" class="btn btn-primary" style="padding:11px">
+            ⬇ 2. Baixar sw.js (Service Worker)
+          </button>
+        </div>
+
+        <div class="step-box">
+          <strong style="color:var(--text-main)">Passo a passo gratuito (GitHub Pages + Brave):</strong>
+          <ol>
+            <li>Coloque na mesma pasta o seu <span class="code-inline">index.html</span>, o <span class="code-inline">manifest.json</span> e o <span class="code-inline">sw.js</span> baixados nos botões acima.</li>
+            <li>Suba esses 3 arquivos em um repositório gratuito no <strong>GitHub</strong> e ative o <strong>GitHub Pages</strong> (em <em>Settings → Pages</em>).</li>
+            <li>Abra o link gerado no <strong>Brave (PC ou Celular)</strong> uma única vez e clique em <strong>"Instalar aplicativo" / "Adicionar à tela inicial"</strong>.</li>
+            <li>Pronto! O Service Worker salva o app inteiro no aparelho para uso vitalício sem internet.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 4: POPUP DE DIAGRAMA DE ACORDE CLICADO NA FOLHA
+       ========================================================================== -->
+  <div id="chordPopupModal" class="modal-overlay hidden">
+    <div class="modal-card modal-sm" style="max-width:300px;text-align:center">
+      <div class="modal-header">
+        <div id="chordPopupTitle" class="modal-title" style="font-family:var(--font-mono);color:var(--accent-amber-light)">Acorde</div>
+        <button id="btnCloseChordPopup" class="btn-icon-only">✕</button>
+      </div>
+      <div class="modal-body" style="align-items:center;padding:22px">
+        <div id="chordPopupSvgWrapper"></div>
+        <p style="font-size:11.5px;color:var(--text-muted);margin-top:6px">
+          Dica: você também pode ver todos os acordes juntos abrindo "Diagramas de Acordes" na barra superior.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 5: CONFIRMAÇÃO DE EXCLUSÃO CUSTOMIZADA (SEM ALERT/CONFIRM)
+       ========================================================================== -->
+  <div id="deleteConfirmModal" class="modal-overlay hidden">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <div class="modal-title">Excluir Música?</div>
+        <button id="btnCloseDeleteModal" class="btn-icon-only">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="deleteConfirmText" style="color:var(--text-secondary)">Tem certeza que deseja remover esta cifra/tablatura do seu caderno?</p>
+      </div>
+      <div class="modal-footer">
+        <button id="btnCancelDelete" class="btn btn-secondary">Cancelar</button>
+        <button id="btnConfirmDeleteAction" class="btn btn-danger">Sim, Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PILHA DE NOTIFICAÇÕES TOAST -->
+  <div id="toastStack" class="toast-stack"></div>
+
+  <!-- ==========================================================================
+       SCRIPT PRINCIPAL — 100% OFFLINE (LOCALSTORAGE + PARSER + PWA GENERATOR)
+       ========================================================================== -->
+  <script>
+    (function () {
+      "use strict";
+
+      const STORAGE_KEY = "cifravault_offline_songs_v2";
+      const PREFS_KEY = "cifravault_offline_prefs_v2";
+
+      /* ----------------------------------------------------------------------
+         1. AS 3 MÚSICAS DE EXEMPLO PRÉ-CARREGADAS
+         ---------------------------------------------------------------------- */
+      const SAMPLE_SONGS = [
+        {
+          id: "sample-sh2-laura",
+          title: "Theme of Laura (Silent Hill 2)",
+          artist: "Akira Yamaoka",
+          category: "Game OST",
+          tuning: "E A D G B E",
+          capo: "Sem capo",
+          favorite: true,
+          sourceUrl: "https://www.songsterr.com/",
+          updatedAt: 1730000100000,
+          content: `[Intro - Violão / Guitarra Base]
+Em          C
+G           D/F#
+Em          C
+G           B7
+
+[Tablatura - Melodia Principal & Arpejo Inicial]
+e|-----------------------------------------------------------------|
+B|---------0---------------1---------------0---------------3-------|
+G|-----0-------0-------0-------0-------0-------0-------2-------2---|
+D|---2---2---2---2---2---2---2---2---0---0---0---0---0---0---0---0-|
+A|-----------------3-----------------------------------------------|
+E|-0-------------------------------3---------------2---------------|
+
+[Tema Solo - Melodia Icônica na Guitarra]
+   Em              C               G               D
+e|-----------------------------------------------------------------|
+B|-5---7---8---7---5---3---5-------3---5---7---5---3---------------|
+G|-----------------------------5-----------------------4---2---4---|
+D|-----------------------------------------------------------------|
+A|-----------------------------------------------------------------|
+E|-----------------------------------------------------------------|
+
+[Ponte Dramática - Power Chords]
+Em                  C
+Nas sombras da neblina de Silent Hill
+G                   D                 B7
+O riff sobe com batida constante em oitavas
+
+[Tab - Riff Rápido da Segunda Parte]
+e|-------------------------------------------------|
+B|-------------------------------------------------|
+G|-9-9-9-11-12-11-9---5-5-5-7-9-7-5----------------|
+D|-9-9-9-11-12-11-9---5-5-5-7-9-7-5---5-5-5-7-5-4--|
+A|-7-7-7-9--10-9--7---3-3-3-5-7-5-3---5-5-5-7-5-4--|
+E|------------------------------------3-3-3-5-3-2--|
+
+[Final]
+Em   C   G   D   Em`
+        },
+        {
+          id: "sample-kratos-atreus",
+          title: "Rap do Kratos e Atreus",
+          artist: "7 Minutoz",
+          category: "Violão",
+          tuning: "E A D G B E",
+          capo: "Sem capo",
+          favorite: true,
+          sourceUrl: "https://www.cifraclub.com.br/",
+          updatedAt: 1730000200000,
+          content: `[Intro - Dedilhado Nórdico em Lá Menor]
+Am   F   C   G
+Am   F   C   E7
+
+[Tablatura - Dedilhado da Intro no Violão]
+   Am              F               C               G
+e|---------0---------------1---------------0---------------3-------|
+B|-----1-------1-------1-------1-------1-------1-------0-------0---|
+G|---2---2---2---2---2---2---2---2---0---0---0---0---0---0---0---0-|
+D|-----------------3-----------------------------------------------|
+A|-0-------------------------------3-------------------------------|
+E|-------------------------------------------------3---------------|
+
+[Verso 1 - Kratos]
+Am                           F
+Feche o seu coração para esse mundo frio
+C                            G
+Controle a sua fúria, escute o que eu digo
+Am                           F
+Eu carrego as cinzas de um passado sombrio
+C                            E7
+Mas hoje sou seu pai e luto contigo
+
+[Pré-Refrão - Atreus]
+Dm                     Am
+Pai, eu ouço vozes dentro da floresta
+F                      G
+Qual é a verdade que ainda nos resta?
+
+[Refrão]
+Am                     F
+Deuses da guerra enfrentando o destino
+C                      G
+Entre a fúria do pai e a coragem do menino
+Am                     F
+No topo da montanha as cinzas vão voar
+C                      E7                Am
+Não importa quem vier, nós vamos enfrentar!`
+        },
+        {
+          id: "sample-sh1-intro",
+          title: "Silent Hill Main Theme (Intro Tab)",
+          artist: "Akira Yamaoka",
+          category: "Game OST",
+          tuning: "E A D G B E",
+          capo: "Sem capo",
+          favorite: false,
+          sourceUrl: "https://www.ultimateguitar.com/",
+          updatedAt: 1730000300000,
+          content: `[Intro - Harpa / Violão Arpejado Clássico]
+Am    Fmaj7    Dm    E7
+
+[Parte A - Arpejo Principal (Toque deixando as cordas soarem)]
+   Am                              Fmaj7
+e|-------0-----------0-----------0-|-------0-----------0-----------0-|
+B|-----1---1-------1---1-------1---|-----1---1-------1---1-------1---|
+G|---2-------2---2-------2---2-----|---2-------2---2-------2---2-----|
+D|---------------------------------|-3-----------3-----------3-------|
+A|-0-----------0-----------0-------|---------------------------------|
+E|---------------------------------|---------------------------------|
+
+   Dm                              E7
+e|-------1-----------1-----------1-|-------0-----------0-----------0-|
+B|-----3---3-------3---3-------3---|-----0---0-------0---0-------0---|
+G|---2-------2---2-------2---2-----|---1-------1---1-------1---1-----|
+D|-0-----------0-----------0-------|---------------------------------|
+D|---------------------------------|---------------------------------|
+A|---------------------------------|-2-----------2-----------2-------|
+E|---------------------------------|---------------------------------|
+
+[Parte B - Clímax Melódico e Desfecho]
+   Am              Dm              Fmaj7           E7        Am
+e|-5---7---8---7---5---3---1---0---|---------0---1---0---------------|
+B|---------------------------------|-3---1---------------3---1---0---|
+G|---------------------------------|---------------------------------2|
+D|---------------------------------|---------------------------------|
+A|-0-------------------------------|---------------------------------0|
+E|---------------------------------|-1---------------0---------------|
+
+[Progressão para Acompanhamento]
+[Am]Silêncio na névoa, [Fmaj7]passos na rua vazia
+[Dm]O rádio estala, [E7]a escuridão anuncia [Am]`
+        }
+      ];
+
+      /* ----------------------------------------------------------------------
+         2. DICIONÁRIO VISUAL DE ACORDES (FRETBOARD SVG)
+         ---------------------------------------------------------------------- */
+      const CHORD_SHAPES = {
+        "C":     [-1, 3, 2, 0, 1, 0],
+        "Cm":    [-1, 3, 5, 5, 4, 3],
+        "C7":    [-1, 3, 2, 3, 1, 0],
+        "Cadd9": [-1, 3, 2, 0, 3, 0],
+        "D":     [-1, -1, 0, 2, 3, 2],
+        "Dm":    [-1, -1, 0, 2, 3, 1],
+        "D7":    [-1, -1, 0, 2, 1, 2],
+        "D/F#":  [2, 0, 0, 2, 3, 2],
+        "E":     [0, 2, 2, 1, 0, 0],
+        "Em":    [0, 2, 2, 0, 0, 0],
+        "E7":    [0, 2, 0, 1, 0, 0],
+        "F":     [1, 3, 3, 2, 1, 1],
+        "Fm":    [1, 3, 3, 1, 1, 1],
+        "Fmaj7": [-1, -1, 3, 2, 1, 0],
+        "F7M":   [-1, -1, 3, 2, 1, 0],
+        "G":     [3, 2, 0, 0, 3, 3],
+        "Gm":    [3, 5, 5, 3, 3, 3],
+        "G7":    [3, 2, 0, 0, 0, 1],
+        "A":     [-1, 0, 2, 2, 2, 0],
+        "Am":    [-1, 0, 2, 2, 1, 0],
+        "Am7":   [-1, 0, 2, 0, 1, 0],
+        "A7":    [-1, 0, 2, 0, 2, 0],
+        "B":     [-1, 2, 4, 4, 4, 2],
+        "Bm":    [-1, 2, 4, 4, 3, 2],
+        "Bm7":   [-1, 2, 4, 2, 3, 2],
+        "B7":    [-1, 2, 1, 2, 0, 2]
+      };
+
+      const BASE_CATEGORIES = ["Todas", "Favoritas ⭐", "Violão", "Guitarra", "Game OST", "Repertório"];
+
+      /* ----------------------------------------------------------------------
+         3. ESTADO DA APLICAÇÃO
+         ---------------------------------------------------------------------- */
+      const state = {
+        songs: [],
+        currentSongId: null,
+        selectedCategory: "Todas",
+        searchQuery: "",
+        transpose: 0,
+        useFlats: false,
+        fontSize: 15,
+        twoColumns: false,
+        showChordsDrawer: false,
+        highlightedChord: null,
+        pendingDeleteId: null,
+        autoScroll: {
+          active: false,
+          speed: 3,
+          acc: 0,
+          rafId: null
+        }
+      };
+
+      /* ----------------------------------------------------------------------
+         4. PERSISTÊNCIA LOCALSTORAGE (100% OFFLINE)
+         ---------------------------------------------------------------------- */
+      function loadFromStorage() {
+        try {
+          const rawSongs = localStorage.getItem(STORAGE_KEY);
+          if (rawSongs) {
+            const parsed = JSON.parse(rawSongs);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              state.songs = parsed;
+            } else {
+              state.songs = JSON.parse(JSON.stringify(SAMPLE_SONGS));
+              saveToStorage();
+            }
+          } else {
+            state.songs = JSON.parse(JSON.stringify(SAMPLE_SONGS));
+            saveToStorage();
+          }
+
+          const rawPrefs = localStorage.getItem(PREFS_KEY);
+          if (rawPrefs) {
+            const prefs = JSON.parse(rawPrefs);
+            if (prefs.fontSize) state.fontSize = prefs.fontSize;
+            if (typeof prefs.twoColumns === "boolean") state.twoColumns = prefs.twoColumns;
+            if (typeof prefs.useFlats === "boolean") state.useFlats = prefs.useFlats;
+          }
+        } catch (err) {
+          console.warn("Aviso ao acessar localStorage:", err);
+          state.songs = JSON.parse(JSON.stringify(SAMPLE_SONGS));
+        }
+
+        state.currentSongId = state.songs[0] ? state.songs[0].id : null;
+        updateStorageBadge();
+      }
+
+      function saveToStorage() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.songs));
+          localStorage.setItem(PREFS_KEY, JSON.stringify({
+            fontSize: state.fontSize,
+            twoColumns: state.twoColumns,
+            useFlats: state.useFlats
+          }));
+          updateStorageBadge();
+        } catch (err) {
+          console.warn("Não foi possível gravar no localStorage:", err);
+        }
+      }
+
+      function updateStorageBadge() {
+        const count = state.songs.length;
+        const text = `${count} ${count === 1 ? "música salva" : "músicas salvas"} (Offline)`;
+        const footerEl = document.getElementById("storageIndicatorText");
+        const modalStatusEl = document.getElementById("backupModalStatus");
+        if (footerEl) footerEl.textContent = text;
+        if (modalStatusEl) modalStatusEl.textContent = `${count} música(s) armazenada(s) no navegador via localStorage`;
+      }
+
+      /* ----------------------------------------------------------------------
+         5. MOTOR DE TRANSPOSIÇÃO E PARSER DE CIFRAS / CHORDPRO / TABS ASCII
+         ---------------------------------------------------------------------- */
+      const SCALE_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+      const SCALE_FLAT  = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+      const NOTE_INDEX = {
+        "C": 0, "B#": 0,
+        "C#": 1, "Db": 1,
+        "D": 2,
+        "D#": 3, "Eb": 3,
+        "E": 4, "Fb": 4,
+        "F": 5, "E#": 5,
+        "F#": 6, "Gb": 6,
+        "G": 7,
+        "G#": 8, "Ab": 8,
+        "A": 9,
+        "A#": 10, "Bb": 10,
+        "B": 11, "Cb": 11
+      };
+
+      const CHORD_REGEX = /^([A-G][#b]?)(m|maj|min|dim|aug|sus|add|M|\+|°)?(\d+)?(\((?:[#b]?\d+|sus\d+|add\d+)(?:\/[#b]?\d+)?\))?(?:\/([A-G][#b]?))?$/;
+
+      function escapeHtml(str) {
+        return String(str || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function cleanChordToken(token) {
+        return token.trim().replace(/^[|(\[]+|[|)\],.!]+$/g, "");
+      }
+
+      function isChordToken(token) {
+        const cleaned = cleanChordToken(token);
+        if (!cleaned) return false;
+        return CHORD_REGEX.test(cleaned);
+      }
+
+      function isAsciiTabLine(line) {
+        const trimmed = line.trim();
+        if (/^[eBGDAEebgda][#b]?\|[-0-9hHpPbBrRsS/\\~xX()|\s]+/.test(trimmed)) return true;
+        if (/^\|[-0-9hHpPbBrRsS/\\~xX()|]{5,}/.test(trimmed)) return true;
+        return false;
+      }
+
+      function isSectionHeader(line) {
+        const trimmed = line.trim();
+        if (!/^\[[^\]]+\]$/.test(trimmed)) return false;
+        const inner = trimmed.slice(1, -1).trim();
+        // Se for apenas um acorde dentro de colchetes como [Am], é ChordPro e não título de seção
+        return !isChordToken(inner);
+      }
+
+      function hasChordProInline(line) {
+        return /\[([A-G][#b]?[^\]]*)\]/.test(line) && !isSectionHeader(line);
+      }
+
+      function isChordLine(line) {
+        if (isAsciiTabLine(line) || isSectionHeader(line)) return false;
+        const trimmed = line.trim();
+        if (!trimmed) return false;
+        const tokens = trimmed.split(/\s+/);
+        let validChords = 0;
+        for (let i = 0; i < tokens.length; i++) {
+          if (isChordToken(tokens[i])) validChords++;
+        }
+        return validChords > 0 && (validChords / tokens.length) >= 0.55;
+      }
+
+      function transposeNote(note, semitones, preferFlats) {
+        const idx = NOTE_INDEX[note];
+        if (idx === undefined) return note;
+        const nextIdx = ((idx + semitones) % 12 + 12) % 12;
+        return preferFlats ? SCALE_FLAT[nextIdx] : SCALE_SHARP[nextIdx];
+      }
+
+      function transposeChord(chordStr, semitones, preferFlats) {
+        return chordStr.replace(/([A-G][#b]?)/g, function (match) {
+          return transposeNote(match, semitones, preferFlats);
+        });
+      }
+
+      function parseAndFormatSheet(rawContent, semitones, preferFlats) {
+        const lines = String(rawContent || "").split(/\r?\n/);
+        const detectedChords = [];
+        const seenChords = new Set();
+
+        function registerChord(c) {
+          if (c && !seenChords.has(c)) {
+            seenChords.add(c);
+            detectedChords.push(c);
+          }
+        }
+
+        const formattedLines = lines.map(function (line) {
+          // 1. Linha de Tablatura ASCII
+          if (isAsciiTabLine(line)) {
+            return '<span class="tab-line">' + escapeHtml(line) + '</span>';
+          }
+
+          // 2. Linha de Seção ex: [Intro - Violão]
+          if (isSectionHeader(line)) {
+            return '<span class="section-tag">' + escapeHtml(line.trim()) + '</span>';
+          }
+
+          // 3. Linha com sintaxe ChordPro inline ex: [Am]Silêncio na névoa [Fmaj7]passos
+          if (hasChordProInline(line)) {
+            return escapeHtml(line).replace(/\[([^\]]+)\]/g, function (full, inside) {
+              if (isChordToken(inside)) {
+                const transposed = transposeChord(inside.trim(), semitones, preferFlats);
+                registerChord(transposed);
+                return '<span class="chord-token" data-chord="' + escapeHtml(transposed) + '">[' + escapeHtml(transposed) + ']</span>';
+              }
+              return full;
+            });
+          }
+
+          // 4. Linha predominante de Acordes
+          if (isChordLine(line)) {
+            const escaped = escapeHtml(line);
+            return escaped.replace(/\S+/g, function (token) {
+              if (isChordToken(token)) {
+                const rawChord = cleanChordToken(token);
+                const transposed = transposeChord(rawChord, semitones, preferFlats);
+                registerChord(transposed);
+                const replacedToken = token.replace(rawChord, transposed);
+                return '<span class="chord-token" data-chord="' + escapeHtml(transposed) + '">' + replacedToken + '</span>';
+              }
+              return token;
+            });
+          }
+
+          // 5. Linha comum de letra
+          return escapeHtml(line);
+        });
+
+        return {
+          html: formattedLines.join("\n"),
+          chords: detectedChords
+        };
+      }
+
+      /* ----------------------------------------------------------------------
+         6. GERADOR DE DIAGRAMAS DE ACORDES EM SVG PURO
+         ---------------------------------------------------------------------- */
+      function buildChordSvg(chordName, scaleSize) {
+        const scale = scaleSize || 1;
+        const baseLookup = chordName.replace(/7M|maj7/g, "maj7");
+        const frets = CHORD_SHAPES[chordName] || CHORD_SHAPES[baseLookup] || CHORD_SHAPES[chordName.replace(/7|9|4|add9|sus4/g, "")];
+
+        const w = Math.round(84 * scale);
+        const h = Math.round(76 * scale);
+
+        if (!frets) {
+          return (
+            '<svg width="' + w + '" height="' + h + '" viewBox="0 0 84 76">' +
+              '<rect x="8" y="12" width="68" height="56" rx="6" fill="#0b1120" stroke="#334155" stroke-dasharray="3 3"/>' +
+              '<text x="42" y="44" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">' + escapeHtml(chordName) + '</text>' +
+            '</svg>'
+          );
+        }
+
+        let indicators = "";
+        let dots = "";
+
+        for (let s = 0; s < 6; s++) {
+          const x = 12 + s * 12;
+          const f = frets[s];
+          if (f === -1) {
+            indicators += '<text x="' + x + '" y="10" text-anchor="middle" fill="#f87171" font-size="9" font-family="monospace">x</text>';
+          } else if (f === 0) {
+            indicators += '<circle cx="' + x + '" cy="7" r="2.8" fill="none" stroke="#94a3b8" stroke-width="1.3"/>';
+          } else {
+            const clampedFret = Math.min(f, 5);
+            const y = 14 + (clampedFret - 0.5) * 11.5;
+            dots += '<circle cx="' + x + '" cy="' + y + '" r="4.1" fill="#f59e0b"/>';
+          }
+        }
+
+        return (
+          '<svg width="' + w + '" height="' + h + '" viewBox="0 0 84 76">' +
+            indicators +
+            '<line x1="12" y1="14" x2="72" y2="14" stroke="#f8fafc" stroke-width="2.5"/>' +
+            '<line x1="12" y1="25.5" x2="72" y2="25.5" stroke="#334155" stroke-width="1"/>' +
+            '<line x1="12" y1="37" x2="72" y2="37" stroke="#334155" stroke-width="1"/>' +
+            '<line x1="12" y1="48.5" x2="72" y2="48.5" stroke="#334155" stroke-width="1"/>' +
+            '<line x1="12" y1="60" x2="72" y2="60" stroke="#334155" stroke-width="1"/>' +
+            '<line x1="12" y1="71.5" x2="72" y2="71.5" stroke="#334155" stroke-width="1"/>' +
+            '<line x1="12" y1="14" x2="12" y2="71.5" stroke="#64748b" stroke-width="1.4"/>' +
+            '<line x1="24" y1="14" x2="24" y2="71.5" stroke="#64748b" stroke-width="1.2"/>' +
+            '<line x1="36" y1="14" x2="36" y2="71.5" stroke="#64748b" stroke-width="1.1"/>' +
+            '<line x1="48" y1="14" x2="48" y2="71.5" stroke="#64748b" stroke-width="1"/>' +
+            '<line x1="60" y1="14" x2="60" y2="71.5" stroke="#64748b" stroke-width="0.9"/>' +
+            '<line x1="72" y1="14" x2="72" y2="71.5" stroke="#64748b" stroke-width="0.8"/>' +
+            dots +
+          '</svg>'
+        );
+      }
+
+      /* ----------------------------------------------------------------------
+         7. RENDERIZAÇÃO DE PASTAS, LISTA E VISUALIZADOR
+         ---------------------------------------------------------------------- */
+      function getAllCategories() {
+        const dynamicCats = new Set(BASE_CATEGORIES);
+        state.songs.forEach(function (s) {
+          if (s.category && s.category.trim()) {
+            dynamicCats.add(s.category.trim());
+          }
+        });
+        return Array.from(dynamicCats);
+      }
+
+      function getCategoryCount(cat) {
+        if (cat === "Todas") return state.songs.length;
+        if (cat === "Favoritas ⭐") return state.songs.filter(function (s) { return Boolean(s.favorite); }).length;
+        return state.songs.filter(function (s) { return (s.category || "") === cat; }).length;
+      }
+
+      function renderCategoryPills() {
+        const container = document.getElementById("categoryPillsContainer");
+        const categories = getAllCategories();
+
+        document.getElementById("sidebarTotalCount").textContent =
+          state.songs.length + (state.songs.length === 1 ? " música" : " músicas");
+
+        container.innerHTML = categories.map(function (cat) {
+          const isActive = state.selectedCategory === cat;
+          const count = getCategoryCount(cat);
+          return (
+            '<button type="button" data-cat="' + escapeHtml(cat) + '" class="cat-pill ' + (isActive ? 'active' : '') + '">' +
+              '<span>' + escapeHtml(cat) + '</span>' +
+              '<span class="cat-count">' + count + '</span>' +
+            '</button>'
+          );
+        }).join("");
+
+        container.querySelectorAll(".cat-pill").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            state.selectedCategory = btn.getAttribute("data-cat");
+            renderCategoryPills();
+            renderSongList();
+          });
+        });
+      }
+
+      function getFilteredSongs() {
+        const q = state.searchQuery.trim().toLowerCase();
+        return state.songs.filter(function (s) {
+          if (state.selectedCategory === "Favoritas ⭐" && !s.favorite) return false;
+          if (state.selectedCategory !== "Todas" && state.selectedCategory !== "Favoritas ⭐") {
+            if ((s.category || "") !== state.selectedCategory) return false;
+          }
+          if (q) {
+            const matchTitle = (s.title || "").toLowerCase().includes(q);
+            const matchArtist = (s.artist || "").toLowerCase().includes(q);
+            const matchCat = (s.category || "").toLowerCase().includes(q);
+            const matchTuning = (s.tuning || "").toLowerCase().includes(q);
+            return matchTitle || matchArtist || matchCat || matchTuning;
+          }
+          return true;
+        });
+      }
+
+      function renderSongList() {
+        const listEl = document.getElementById("songListContainer");
+        const filtered = getFilteredSongs();
+
+        if (filtered.length === 0) {
+          listEl.innerHTML =
+            '<div style="text-align:center;padding:32px 12px;color:var(--text-muted)">' +
+              '<p style="font-weight:700;color:var(--text-secondary)">Nenhuma música nesta pasta</p>' +
+              '<p style="font-size:11.5px;margin-top:4px">Use "+ Nova Cifra / Tab" ou mude o filtro acima.</p>' +
+            '</div>';
+          return;
+        }
+
+        listEl.innerHTML = filtered.map(function (song) {
+          const isCurrent = song.id === state.currentSongId;
+          const badgeClass = song.category === "Game OST" ? "badge-cyan" : "badge-amber";
+
+          return (
+            '<div class="song-item ' + (isCurrent ? 'active' : '') + '" data-id="' + escapeHtml(song.id) + '">' +
+              '<div class="song-item-top">' +
+                '<div>' +
+                  '<div class="song-item-title">' + escapeHtml(song.title) + '</div>' +
+                  '<div class="song-item-artist">' + escapeHtml(song.artist) + '</div>' +
+                '</div>' +
+                '<button type="button" class="fav-star-btn ' + (song.favorite ? 'is-fav' : '') + '" data-fav-id="' + escapeHtml(song.id) + '" title="Favoritar">' +
+                  '★' +
+                '</button>' +
+              '</div>' +
+              '<div class="song-item-badges">' +
+                '<span class="badge ' + badgeClass + '">' + escapeHtml(song.category || "Violão") + '</span>' +
+                '<span class="badge badge-mono">' + escapeHtml(song.tuning || "E A D G B E") + '</span>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join("");
+
+        // Clique no item da música
+        listEl.querySelectorAll(".song-item").forEach(function (card) {
+          card.addEventListener("click", function (e) {
+            if (e.target.closest("[data-fav-id]")) return;
+            selectSong(card.getAttribute("data-id"));
+            if (window.innerWidth <= 960) {
+              toggleSidebar(false);
+            }
+          });
+        });
+
+        // Clique na estrela de favorito na lista
+        listEl.querySelectorAll("[data-fav-id]").forEach(function (starBtn) {
+          starBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            const id = starBtn.getAttribute("data-fav-id");
+            toggleFavorite(id);
+          });
+        });
+      }
+
+      function selectSong(songId) {
+        stopAutoScroll();
+        state.currentSongId = songId;
+        state.transpose = 0;
+        state.highlightedChord = null;
+        renderSongList();
+        renderViewer();
+        const vp = document.getElementById("songScrollViewport");
+        if (vp) vp.scrollTop = 0;
+      }
+
+      function toggleFavorite(songId) {
+        const song = state.songs.find(function (s) { return s.id === songId; });
+        if (!song) return;
+        song.favorite = !song.favorite;
+        saveToStorage();
+        renderCategoryPills();
+        renderSongList();
+        renderViewer();
+      }
+
+      function renderViewer() {
+        const song = state.songs.find(function (s) { return s.id === state.currentSongId; }) || state.songs[0];
+        if (!song) {
+          document.getElementById("viewSongTitle").textContent = "Caderno Vazio";
+          document.getElementById("viewSongArtist").textContent = "Adicione uma nova cifra ou restaure os exemplos";
+          document.getElementById("songSheetOutput").innerHTML = "";
+          return;
+        }
+
+        state.currentSongId = song.id;
+
+        document.getElementById("viewSongTitle").textContent = song.title;
+        document.getElementById("viewSongArtist").textContent = song.artist;
+        document.getElementById("viewCategoryBadge").textContent = song.category || "Violão";
+        document.getElementById("viewTuningBadge").textContent = "Afinação: " + (song.tuning || "E A D G B E");
+
+        const capoBadge = document.getElementById("viewCapoBadge");
+        if (song.capo && song.capo.trim() && song.capo.toLowerCase() !== "sem capo") {
+          capoBadge.textContent = "Capo: " + song.capo.trim();
+          capoBadge.classList.remove("hidden");
+        } else {
+          capoBadge.classList.add("hidden");
+        }
+
+        const favBtn = document.getElementById("btnViewToggleFav");
+        favBtn.classList.toggle("is-fav", Boolean(song.favorite));
+
+        const sourceLink = document.getElementById("viewSourceUrlBtn");
+        if (song.sourceUrl && song.sourceUrl.trim()) {
+          sourceLink.href = song.sourceUrl.trim();
+          sourceLink.classList.remove("hidden");
+        } else {
+          sourceLink.classList.add("hidden");
+        }
+
+        // Controles da Barra
+        const resetBtn = document.getElementById("btnTransposeReset");
+        if (state.transpose === 0) {
+          resetBtn.textContent = "Orig";
+          resetBtn.classList.remove("active");
+        } else {
+          const sign = state.transpose > 0 ? "+" : "";
+          resetBtn.textContent = sign + state.transpose + " st";
+          resetBtn.classList.add("active");
+        }
+
+        document.getElementById("btnAccidentalToggle").textContent = "♯/♭: " + (state.useFlats ? "♭" : "♯");
+        document.getElementById("fontSizeValue").textContent = state.fontSize + "px";
+
+        const twoColBtn = document.getElementById("btnToggleTwoCols");
+        twoColBtn.classList.toggle("active", state.twoColumns);
+
+        const chordsDrawerBtn = document.getElementById("btnToggleChordsDrawer");
+        chordsDrawerBtn.classList.toggle("active", state.showChordsDrawer);
+        document.getElementById("chordsDrawer").classList.toggle("hidden", !state.showChordsDrawer);
+
+        // Renderiza Folha
+        const sheetEl = document.getElementById("songSheetOutput");
+        sheetEl.style.fontSize = state.fontSize + "px";
+        sheetEl.classList.toggle("two-columns", state.twoColumns);
+
+        const parsed = parseAndFormatSheet(song.content, state.transpose, state.useFlats);
+        sheetEl.innerHTML = parsed.html;
+
+        // Renderiza Gaveta de Diagramas de Acordes
+        const gridEl = document.getElementById("chordsGridContainer");
+        if (parsed.chords.length > 0) {
+          gridEl.innerHTML = parsed.chords.map(function (c) {
+            const isHighlighted = state.highlightedChord === c;
+            return (
+              '<div class="chord-diagram-card ' + (isHighlighted ? 'highlighted' : '') + '" data-diagram-chord="' + escapeHtml(c) + '">' +
+                '<div class="chord-diagram-name">' + escapeHtml(c) + '</div>' +
+                buildChordSvg(c, 1) +
+              '</div>'
+            );
+          }).join("");
+        } else {
+          gridEl.innerHTML = '<span style="font-size:12px;color:var(--text-muted)">Apenas tablatura ou letra detectada.</span>';
+        }
+
+        // Evento ao clicar em qualquer acorde na folha
+        sheetEl.querySelectorAll(".chord-token").forEach(function (el) {
+          el.addEventListener("click", function () {
+            const chordName = el.getAttribute("data-chord");
+            state.highlightedChord = chordName;
+            openChordPopup(chordName);
+            if (state.showChordsDrawer) {
+              renderViewer();
+            }
+          });
+        });
+      }
+
+      function openChordPopup(chordName) {
+        document.getElementById("chordPopupTitle").textContent = "Acorde: " + chordName;
+        document.getElementById("chordPopupSvgWrapper").innerHTML = buildChordSvg(chordName, 1.55);
+        document.getElementById("chordPopupModal").classList.remove("hidden");
+      }
+
+      /* ----------------------------------------------------------------------
+         8. AUTO-SCROLL (ROLAGEM AUTOMÁTICA DE 1x A 10x)
+         ---------------------------------------------------------------------- */
+      function autoScrollStep() {
+        if (!state.autoScroll.active) return;
+        const vp = document.getElementById("songScrollViewport");
+        if (vp) {
+          const delta = state.autoScroll.speed * 0.16;
+          state.autoScroll.acc += delta;
+          if (state.autoScroll.acc >= 1) {
+            const px = Math.floor(state.autoScroll.acc);
+            vp.scrollTop += px;
+            state.autoScroll.acc -= px;
+            if (vp.scrollTop + vp.clientHeight >= vp.scrollHeight - 2) {
+              stopAutoScroll();
+              return;
+            }
+          }
+        }
+        state.autoScroll.rafId = requestAnimationFrame(autoScrollStep);
+      }
+
+      function startAutoScroll() {
+        if (state.autoScroll.active) return;
+        state.autoScroll.active = true;
+        state.autoScroll.acc = 0;
+        updateAutoScrollButton();
+        state.autoScroll.rafId = requestAnimationFrame(autoScrollStep);
+      }
+
+      function stopAutoScroll() {
+        state.autoScroll.active = false;
+        if (state.autoScroll.rafId) {
+          cancelAnimationFrame(state.autoScroll.rafId);
+          state.autoScroll.rafId = null;
+        }
+        updateAutoScrollButton();
+      }
+
+      function updateAutoScrollButton() {
+        const btn = document.getElementById("btnAutoScroll");
+        const label = document.getElementById("autoScrollLabel");
+        document.getElementById("scrollSpeedValue").textContent = state.autoScroll.speed + "x";
+        if (state.autoScroll.active) {
+          btn.classList.add("active");
+          label.textContent = "⏸ Pausar";
+        } else {
+          btn.classList.remove("active");
+          label.textContent = "▶ Auto-Scroll";
+        }
+      }
+
+      /* ----------------------------------------------------------------------
+         9. SUPORTE PWA NATIVO & GERADOR DE KIT (MANIFEST.JSON + SW.JS)
+         ---------------------------------------------------------------------- */
+      const APP_ICON_SVG_DATA_URI =
+        "data:image/svg+xml;utf8," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' +
+            '<rect width="512" height="512" rx="110" fill="#0f172a"/>' +
+            '<rect x="28" y="28" width="456" height="456" rx="90" fill="none" stroke="#f59e0b" stroke-width="20"/>' +
+            '<path d="M190 360V150l170-30v210" fill="none" stroke="#f59e0b" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>' +
+            '<circle cx="155" cy="360" r="42" fill="#f59e0b"/>' +
+            '<circle cx="325" cy="330" r="42" fill="#38bdf8"/>' +
+          '</svg>'
+        );
+
+      function getManifestJsonObject() {
+        return {
+          name: "CifraVault — Caderno Offline de Cifras & Tabs",
+          short_name: "CifraVault",
+          description: "Gerenciador pessoal 100% offline de cifras de violão e tablaturas ASCII.",
+          start_url: "./index.html",
+          display: "standalone",
+          background_color: "#0f172a",
+          theme_color: "#0f172a",
+          icons: [
+            {
+              src: APP_ICON_SVG_DATA_URI,
+              sizes: "192x192 512x512",
+              type: "image/svg+xml",
+              purpose: "any maskable"
+            }
+          ]
+        };
+      }
+
+      function getServiceWorkerCode() {
+        return [
+          "// CifraVault — Service Worker 100% Offline",
+          "const CACHE_NAME = 'cifravault-offline-cache-v1';",
+          "const ASSETS = ['./', './index.html', './manifest.json'];",
+          "",
+          "self.addEventListener('install', (event) => {",
+          "  event.waitUntil(",
+          "    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))",
+          "  );",
+          "  self.skipWaiting();",
+          "});",
+          "",
+          "self.addEventListener('activate', (event) => {",
+          "  event.waitUntil(",
+          "    caches.keys().then((keys) =>",
+          "      Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : null)))",
+          "    )",
+          "  );",
+          "  self.clients.claim();",
+          "});",
+          "",
+          "self.addEventListener('fetch', (event) => {",
+          "  event.respondWith(",
+          "    caches.match(event.request).then((cached) => cached || fetch(event.request))",
+          "  );",
+          "});"
+        ].join("\n");
+      }
+
+      function setupBuiltInPwa() {
+        try {
+          const manifestStr = JSON.stringify(getManifestJsonObject(), null, 2);
+          const manifestDataUrl = "data:application/manifest+json;charset=utf-8," + encodeURIComponent(manifestStr);
+          const linkEl = document.getElementById("dynamicManifestLink");
+          if (linkEl) linkEl.setAttribute("href", manifestDataUrl);
+
+          // Registra automaticamente ./sw.js se estiver em http: ou https:
+          if (
+            "serviceWorker" in navigator &&
+            (window.location.protocol === "http:" || window.location.protocol === "https:")
+          ) {
+            navigator.serviceWorker.register("./sw.js").catch(function () {
+              // Silencioso caso o usuário ainda não tenha colocado o arquivo sw.js ao lado do index.html
+            });
+          }
+        } catch (err) {
+          console.warn("Aviso ao inicializar metadados PWA:", err);
+        }
+      }
+
+      function downloadTextFile(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType || "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      /* ----------------------------------------------------------------------
+         10. UTILITÁRIOS DE NOTIFICAÇÃO E SIDEBAR
+         ---------------------------------------------------------------------- */
+      function showToast(msg) {
+        const stack = document.getElementById("toastStack");
+        const item = document.createElement("div");
+        item.className = "toast-item";
+        item.textContent = "✔ " + msg;
+        stack.appendChild(item);
+        setTimeout(function () {
+          item.remove();
+        }, 2800);
+      }
+
+      function toggleSidebar(forceOpen) {
+        const sidebar = document.getElementById("sidebar");
+        const backdrop = document.getElementById("sidebarBackdrop");
+
+        if (window.innerWidth > 960) {
+          sidebar.classList.toggle("collapsed-desktop");
+          return;
+        }
+
+        const isOpen = sidebar.classList.contains("open-mobile");
+        const next = typeof forceOpen === "boolean" ? forceOpen : !isOpen;
+        sidebar.classList.toggle("open-mobile", next);
+        backdrop.classList.toggle("hidden", !next);
+      }
+
+      /* ----------------------------------------------------------------------
+         11. EVENTOS DA INTERFACE
+         ---------------------------------------------------------------------- */
+      function bindEvents() {
+        // Sidebar toggle
+        document.getElementById("btnToggleSidebar").addEventListener("click", function () {
+          toggleSidebar();
+        });
+        document.getElementById("sidebarBackdrop").addEventListener("click", function () {
+          toggleSidebar(false);
+        });
+
+        // Busca
+        const searchInput = document.getElementById("searchInput");
+        const btnClearSearch = document.getElementById("btnClearSearch");
+        searchInput.addEventListener("input", function () {
+          state.searchQuery = searchInput.value;
+          btnClearSearch.classList.toggle("hidden", state.searchQuery === "");
+          renderSongList();
+        });
+        btnClearSearch.addEventListener("click", function () {
+          state.searchQuery = "";
+          searchInput.value = "";
+          btnClearSearch.classList.add("hidden");
+          renderSongList();
+        });
+
+        // Auto-Scroll
+        document.getElementById("btnAutoScroll").addEventListener("click", function () {
+          if (state.autoScroll.active) stopAutoScroll();
+          else startAutoScroll();
+        });
+        document.getElementById("scrollSpeedInput").addEventListener("input", function (e) {
+          state.autoScroll.speed = parseInt(e.target.value, 10) || 3;
+          updateAutoScrollButton();
+        });
+
+        // Transposição e Acidentes
+        document.getElementById("btnTransposeDown").addEventListener("click", function () {
+          state.transpose -= 1;
+          if (state.transpose < -11) state.transpose = 0;
+          renderViewer();
+        });
+        document.getElementById("btnTransposeUp").addEventListener("click", function () {
+          state.transpose += 1;
+          if (state.transpose > 11) state.transpose = 0;
+          renderViewer();
+        });
+        document.getElementById("btnTransposeReset").addEventListener("click", function () {
+          state.transpose = 0;
+          renderViewer();
+        });
+        document.getElementById("btnAccidentalToggle").addEventListener("click", function () {
+          state.useFlats = !state.useFlats;
+          saveToStorage();
+          renderViewer();
+        });
+
+        // Fonte, 2 Colunas e Gaveta de Diagramas
+        document.getElementById("btnFontDown").addEventListener("click", function () {
+          state.fontSize = Math.max(11, state.fontSize - 1);
+          saveToStorage();
+          renderViewer();
+        });
+        document.getElementById("btnFontUp").addEventListener("click", function () {
+          state.fontSize = Math.min(26, state.fontSize + 1);
+          saveToStorage();
+          renderViewer();
+        });
+        document.getElementById("btnToggleTwoCols").addEventListener("click", function () {
+          state.twoColumns = !state.twoColumns;
+          saveToStorage();
+          renderViewer();
+        });
+        document.getElementById("btnToggleChordsDrawer").addEventListener("click", function () {
+          state.showChordsDrawer = !state.showChordsDrawer;
+          renderViewer();
+        });
+        document.getElementById("btnCloseChordsDrawer").addEventListener("click", function () {
+          state.showChordsDrawer = false;
+          renderViewer();
+        });
+
+        // Favorito no Cabeçalho da Música
+        document.getElementById("btnViewToggleFav").addEventListener("click", function () {
+          if (state.currentSongId) toggleFavorite(state.currentSongId);
+        });
+
+        // Fechar Popup de Acorde
+        document.getElementById("btnCloseChordPopup").addEventListener("click", function () {
+          document.getElementById("chordPopupModal").classList.add("hidden");
+        });
+
+        // Abrir Modal Nova Cifra / Editar / Duplicar
+        document.getElementById("btnOpenNewModal").addEventListener("click", function () {
+          openEditorModal(null);
+        });
+        document.getElementById("btnEditSong").addEventListener("click", function () {
+          const song = state.songs.find(function (s) { return s.id === state.currentSongId; });
+          if (song) openEditorModal(song);
+        });
+        document.getElementById("btnDuplicateSong").addEventListener("click", function () {
+          const song = state.songs.find(function (s) { return s.id === state.currentSongId; });
+          if (!song) return;
+          const copy = JSON.parse(JSON.stringify(song));
+          copy.id = "song-" + Date.now();
+          copy.title = song.title + " (Cópia)";
+          copy.updatedAt = Date.now();
+          state.songs.unshift(copy);
+          state.currentSongId = copy.id;
+          saveToStorage();
+          renderCategoryPills();
+          renderSongList();
+          renderViewer();
+          showToast("Música duplicada com sucesso!");
+        });
+
+        // Excluir Música
+        document.getElementById("btnDeleteSong").addEventListener("click", function () {
+          const song = state.songs.find(function (s) { return s.id === state.currentSongId; });
+          if (!song) return;
+          state.pendingDeleteId = song.id;
+          document.getElementById("deleteConfirmText").textContent =
+            'Deseja realmente excluir "' + song.title + '" (' + song.artist + ')?';
+          document.getElementById("deleteConfirmModal").classList.remove("hidden");
+        });
+        document.getElementById("btnCloseDeleteModal").addEventListener("click", function () {
+          document.getElementById("deleteConfirmModal").classList.add("hidden");
+        });
+        document.getElementById("btnCancelDelete").addEventListener("click", function () {
+          document.getElementById("deleteConfirmModal").classList.add("hidden");
+        });
+        document.getElementById("btnConfirmDeleteAction").addEventListener("click", function () {
+          if (!state.pendingDeleteId) return;
+          state.songs = state.songs.filter(function (s) { return s.id !== state.pendingDeleteId; });
+          state.pendingDeleteId = null;
+          state.currentSongId = state.songs[0] ? state.songs[0].id : null;
+          document.getElementById("deleteConfirmModal").classList.add("hidden");
+          saveToStorage();
+          renderCategoryPills();
+          renderSongList();
+          renderViewer();
+          showToast("Música excluída.");
+        });
+
+        // Utilitários do Editor
+        document.getElementById("btnCloseEditorModal").addEventListener("click", closeEditorModal);
+        document.getElementById("btnCancelEditorModal").addEventListener("click", closeEditorModal);
+
+        document.getElementById("btnCleanExtraSpaces").addEventListener("click", function () {
+          const ta = document.getElementById("formContent");
+          ta.value = ta.value
+            .split(/\r?\n/)
+            .map(function (line) { return line.replace(/\s+$/, ""); })
+            .join("\n")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim();
+          showToast("Espaços vazios extras limpos preservando o alinhamento!");
+        });
+
+        document.getElementById("btnInsertTabTemplate").addEventListener("click", function () {
+          const ta = document.getElementById("formContent");
+          const template =
+            "\ne|-------------------------------------------------|\n" +
+            "B|-------------------------------------------------|\n" +
+            "G|-------------------------------------------------|\n" +
+            "D|-------------------------------------------------|\n" +
+            "A|-------------------------------------------------|\n" +
+            "E|-------------------------------------------------|\n";
+          const start = ta.selectionStart || 0;
+          const end = ta.selectionEnd || 0;
+          ta.value = ta.value.substring(0, start) + template + ta.value.substring(end);
+          ta.focus();
+          ta.selectionStart = ta.selectionEnd = start + template.length;
+        });
+
+        // Salvar Música no Editor
+        document.getElementById("songForm").addEventListener("submit", function (e) {
+          e.preventDefault();
+          const existingId = document.getElementById("formSongId").value;
+          const songData = {
+            id: existingId || ("song-" + Date.now()),
+            title: document.getElementById("formTitle").value.trim(),
+            artist: document.getElementById("formArtist").value.trim(),
+            category: document.getElementById("formCategory").value.trim() || "Violão",
+            tuning: document.getElementById("formTuning").value.trim() || "E A D G B E",
+            capo: document.getElementById("formCapo").value.trim() || "Sem capo",
+            sourceUrl: document.getElementById("formSourceUrl").value.trim(),
+            favorite: document.getElementById("formFavorite").checked,
+            content: document.getElementById("formContent").value,
+            updatedAt: Date.now()
+          };
+
+          if (existingId) {
+            const idx = state.songs.findIndex(function (s) { return s.id === existingId; });
+            if (idx !== -1) state.songs[idx] = songData;
+          } else {
+            state.songs.unshift(songData);
+          }
+
+          state.currentSongId = songData.id;
+          state.transpose = 0;
+          saveToStorage();
+          renderCategoryPills();
+          renderSongList();
+          renderViewer();
+          closeEditorModal();
+          showToast("Música salva no caderno offline!");
+        });
+
+        // Restaurar Músicas de Exemplo
+        document.getElementById("btnRestoreSamples").addEventListener("click", function () {
+          SAMPLE_SONGS.forEach(function (sample) {
+            if (!state.songs.some(function (s) { return s.id === sample.id; })) {
+              state.songs.push(JSON.parse(JSON.stringify(sample)));
+            }
+          });
+          if (!state.currentSongId && state.songs.length > 0) {
+            state.currentSongId = state.songs[0].id;
+          }
+          saveToStorage();
+          renderCategoryPills();
+          renderSongList();
+          renderViewer();
+          showToast("Músicas de exemplo restauradas!");
+        });
+
+        // Modal Backup / JSON
+        const backupModal = document.getElementById("backupModal");
+        document.getElementById("btnOpenBackupModal").addEventListener("click", function () {
+          document.getElementById("backupJsonTextarea").value = JSON.stringify(state.songs, null, 2);
+          updateStorageBadge();
+          backupModal.classList.remove("hidden");
+        });
+        document.getElementById("btnCloseBackupModal").addEventListener("click", function () {
+          backupModal.classList.add("hidden");
+        });
+
+        document.getElementById("btnExportJsonFile").addEventListener("click", function () {
+          downloadTextFile("cifravault-backup.json", JSON.stringify(state.songs, null, 2), "application/json");
+          showToast("Arquivo cifravault-backup.json baixado!");
+        });
+
+        document.getElementById("inputImportJsonFile").addEventListener("change", function (e) {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = function (ev) {
+            importSongsFromJson(ev.target.result);
+            e.target.value = "";
+          };
+          reader.readAsText(file);
+        });
+
+        document.getElementById("btnCopyJsonCode").addEventListener("click", function () {
+          const ta = document.getElementById("backupJsonTextarea");
+          ta.select();
+          document.execCommand("copy");
+          showToast("Código JSON copiado para a área de transferência!");
+        });
+
+        document.getElementById("btnPasteImportJsonCode").addEventListener("click", function () {
+          const raw = document.getElementById("backupJsonTextarea").value;
+          importSongsFromJson(raw);
+        });
+
+        // Modal Modo App / PWA
+        const pwaModal = document.getElementById("pwaModal");
+        document.getElementById("btnOpenPwaModal").addEventListener("click", function () {
+          pwaModal.classList.remove("hidden");
+        });
+        document.getElementById("btnClosePwaModal").addEventListener("click", function () {
+          pwaModal.classList.add("hidden");
+        });
+        document.getElementById("btnDownloadManifest").addEventListener("click", function () {
+          downloadTextFile("manifest.json", JSON.stringify(getManifestJsonObject(), null, 2), "application/manifest+json");
+          showToast("manifest.json baixado!");
+        });
+        document.getElementById("btnDownloadSw").addEventListener("click", function () {
+          downloadTextFile("sw.js", getServiceWorkerCode(), "application/javascript");
+          showToast("sw.js (Service Worker) baixado!");
+        });
+      }
+
+      function openEditorModal(song) {
+        const modal = document.getElementById("editorModal");
+        if (song) {
+          document.getElementById("editorModalTitle").textContent = "Editar Cifra / Tablatura";
+          document.getElementById("formSongId").value = song.id;
+          document.getElementById("formTitle").value = song.title || "";
+          document.getElementById("formArtist").value = song.artist || "";
+          document.getElementById("formCategory").value = song.category || "Violão";
+          document.getElementById("formTuning").value = song.tuning || "E A D G B E";
+          document.getElementById("formCapo").value = song.capo || "";
+          document.getElementById("formSourceUrl").value = song.sourceUrl || "";
+          document.getElementById("formFavorite").checked = Boolean(song.favorite);
+          document.getElementById("formContent").value = song.content || "";
+        } else {
+          document.getElementById("editorModalTitle").textContent = "Nova Cifra ou Tablatura";
+          document.getElementById("songForm").reset();
+          document.getElementById("formSongId").value = "";
+          document.getElementById("formTuning").value = "E A D G B E";
+          document.getElementById("formCategory").value =
+            state.selectedCategory !== "Todas" && state.selectedCategory !== "Favoritas ⭐"
+              ? state.selectedCategory
+              : "Violão";
+        }
+        modal.classList.remove("hidden");
+      }
+
+      function closeEditorModal() {
+        document.getElementById("editorModal").classList.add("hidden");
+      }
+
+      function importSongsFromJson(rawString) {
+        try {
+          const parsed = JSON.parse(rawString);
+          if (!Array.isArray(parsed)) {
+            showToast("O JSON precisa conter uma lista de músicas.");
+            return;
+          }
+          let count = 0;
+          parsed.forEach(function (item) {
+            if (item && item.title && item.content) {
+              const valid = {
+                id: item.id || ("song-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6)),
+                title: String(item.title),
+                artist: String(item.artist || "Artista"),
+                category: String(item.category || "Violão"),
+                tuning: String(item.tuning || "E A D G B E"),
+                capo: String(item.capo || "Sem capo"),
+                sourceUrl: String(item.sourceUrl || ""),
+                favorite: Boolean(item.favorite),
+                content: String(item.content),
+                updatedAt: Date.now()
+              };
+              const idx = state.songs.findIndex(function (s) { return s.id === valid.id; });
+              if (idx !== -1) state.songs[idx] = valid;
+              else state.songs.push(valid);
+              count++;
+            }
+          });
+
+          if (count > 0) {
+            state.currentSongId = state.songs[0].id;
+            saveToStorage();
+            renderCategoryPills();
+            renderSongList();
+            renderViewer();
+            document.getElementById("backupModal").classList.add("hidden");
+            showToast(count + " música(s) importada(s) com sucesso!");
+          }
+        } catch (err) {
+          showToast("Código JSON inválido. Verifique se copiou todo o texto.");
+        }
+      }
+
+      /* ----------------------------------------------------------------------
+         12. INICIALIZAÇÃO
+         ---------------------------------------------------------------------- */
+      window.addEventListener("DOMContentLoaded", function () {
+        setupBuiltInPwa();
+        loadFromStorage();
+        renderCategoryPills();
+        renderSongList();
+        renderViewer();
+        updateAutoScrollButton();
+        bindEvents();
+      });
+    })();
+  </script>
+</body>
+</html>
